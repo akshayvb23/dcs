@@ -1,8 +1,15 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
 import pika
 import json
 import time
 import glob
 import os
+import hashlib # to compute hash of the password
 import subprocess
 from email.parser import BytesParser, Parser
 from email.policy import default
@@ -99,7 +106,14 @@ class EmailServer:
 
     def register_callback(self, ch, method, properties, body):
         # TODO: directory creation and storing authentication info
-        pass
+        register = json.loads(body)
+        username = register.get('username')
+        # computing hash of the password
+        password = hashlib.md5(b,register.get('password'))
+        
+        inbox_directory = self.hdfs.create_directory(ROOT_MAIL_DIRECTORY + '/' + username + '/sent/')
+        outbox_directory = self.hdfs.create_directory(ROOT_MAIL_DIRECTORY + '/' + username + '/received/')
+        
 
     def send_callback(self, ch, method, properties, body):
 
@@ -159,3 +173,4 @@ if __name__ == "__main__":
     EMAIL_SERVER = EmailServer()
     EMAIL_SERVER.start()
     EMAIL_SERVER.run()
+
