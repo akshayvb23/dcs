@@ -22,16 +22,13 @@ def send_email(sender, receiver, subject_line, message_body, channel):
     print("[x] sent out an email")
 
 
+'''This is started from the register thread'''
+
+
 def start_sender(sender_email_id, send_list):
     # TODO: get a host list from the config file
-    host_list = ['localhost']
-    channel_list = []
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host_list[0]))
+    connection = pika.BlockingConnection(pika.ConnectionParameters('34.94.60.242', 5672, "/", pika.PlainCredentials('rabbit','1')))
     channel = connection.channel()
-    channel.queue_declare(queue='receiveMailQ', durable=True)
-    channel_list.append(channel)
-    # List of emails the sender sends an email to
-    # update_email_send_list()
     # get the sender email from the command line argument
     sender = sender_email_id
     for receiver in send_list:
@@ -39,4 +36,4 @@ def start_sender(sender_email_id, send_list):
             subject = generate_random_string.randomString()
             message_body = generate_random_string.randomString(size)
             # TODO: select a channel list in a round-robin manner
-            send_email(sender, receiver, subject, message_body, channel_list[0])
+            send_email(sender, receiver, subject, message_body, channel)
