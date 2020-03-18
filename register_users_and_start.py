@@ -23,7 +23,8 @@ def register_callback(self, ch, method, properties, body):
 if __name__ == "__main__":
     if os.path.isfile('email_list'):
         os.remove('email_list')
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    #connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters('10.168.0.2', 5672, "/", pika.PlainCredentials('rabbit','1')))
     channel = connection.channel()
     """ generate_random_emails(number_of_emails, length_of_username 
     and save to email_list file """
@@ -37,9 +38,10 @@ if __name__ == "__main__":
     file_handle.close()
     thread_list = []
     for sender in email_list:
-        t = threading.Thread(target=mail_sending_client.start_sender, args=(email_list[0], email_list,))
+        t = threading.Thread(target=mail_sending_client.start_sender, args=(email_list[0], email_list, channel))
         thread_list.append(t)
 
+    print(len(thread_list))
     for thread in thread_list:
         thread.start()
 

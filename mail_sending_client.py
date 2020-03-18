@@ -25,10 +25,10 @@ def send_email(sender, receiver, subject_line, message_body, channel):
 '''This is started from the register thread'''
 
 
-def start_sender(sender_email_id, send_list):
+def start_sender(sender_email_id, send_list, channel):
     # TODO: get a host list from the config file
-    connection = pika.BlockingConnection(pika.ConnectionParameters('34.94.60.242', 5672, "/", pika.PlainCredentials('rabbit','1')))
-    channel = connection.channel()
+    # connection = pika.BlockingConnection(pika.ConnectionParameters('34.94.60.242', 5672, "/", pika.PlainCredentials('rabbit','1')))
+    # channel = connection.channel()
     # get the sender email from the command line argument
     sender = sender_email_id
     for receiver in send_list:
