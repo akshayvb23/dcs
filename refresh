@@ -1,0 +1,5 @@
+#!/bin/bash
+
+../bin/hdfs dfs -rm -r "/var/mail/"
+../bin/hdfs dfs -mkdir -p "/var/mail/"
+../bin/hdfs dfs -chown -R root  "/"
