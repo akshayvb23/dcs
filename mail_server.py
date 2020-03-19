@@ -39,7 +39,7 @@ class HDFS:
         #os.makedirs(directory)
 
     def store_file(self, filename, destination_directory):
-        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory ] #+ "/" + filename.split("/")[-1]]
+        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory] #+ "/" + filename.split("/")[-1]]
         return execute_shell_command(command)
 
     def copy_mail_directory_to_local_storage(self, source_directory, destination_directory):
@@ -70,13 +70,14 @@ class EmailServer:
         self.channel.start_consuming()
 
     def create_sender_directory_for_receiver_if_not_exists(self, sender, receiver):
-        sender_directory = ROOT_MAIL_DIRECTORY + receiver + "/" + sender
+        sender_directory = ROOT_MAIL_DIRECTORY + "/" + receiver + "/received/" + sender + "/"
         if self.hdfs.check_if_directory_exists(sender_directory):
             return
+        print("Creating directory " + sender_directory)
         self.hdfs.create_directory(sender_directory)
 
     def store_mail_in_receiver_box_in_hdfs(self, sender, receiver, filename):
-        received_mail_directory = ROOT_MAIL_DIRECTORY + "/" + receiver + "/received/" + sender
+        received_mail_directory = ROOT_MAIL_DIRECTORY + "/" + receiver + "/received/" + sender + "/"
         self.hdfs.store_file(filename, received_mail_directory)
 
     def store_mail_in_sender_box_in_hdfs(self, sender, filename):
