@@ -56,7 +56,7 @@ class EmailServer:
         self.channel = connection.channel()
         self.channel.queue_declare(queue=MAIL_QUEUE, durable=True)
         self.channel.queue_declare(queue=REQUEST_QUEUE, durable=True)
-        self.channel.queue_declare(queue=RESPONSE_QUEUE, durable=True)
+        #self.channel.queue_declare(queue=RESPONSE_QUEUE, durable=True)
         self.channel.queue_declare(queue=REGISTER_QUEUE, durable=True)
 
     def run(self):
@@ -180,6 +180,8 @@ class EmailServer:
         request = json.loads(body)
         user = request.get('user_email')
         query_type = request.get('query_type')
+
+        response_queue = request.get('response_queue')
         
         mailbox = ""
         if query_type == "SENT":
@@ -193,7 +195,7 @@ class EmailServer:
 
         print("\nSending the requested mailbox back to client. Mailbox is as follows:\n")
         print(mailbox)
-        self.channel.basic_publish(exchange='', routing_key='ResponseQ', body=mailbox)
+        self.channel.basic_publish(exchange='', routing_key=response_queue, body=mailbox)
 
 
 if __name__ == "__main__":

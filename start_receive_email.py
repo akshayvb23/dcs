@@ -1,4 +1,5 @@
 import pika
+import sys
 import json
 import receiving_email_client
 import threading
@@ -35,13 +36,16 @@ def update_email_send_list():
 
 
 if __name__== '__main__':
+
+    num_servers = int(sys.argv[1])
+    process_id = int(sys.argv[2])
     # TODO: get a host list from the config file
     email_list = update_email_send_list()
     print(email_list)
     # get the sender email from the command line argument
     thread_list = []
     for user in email_list:
-        t = threading.Thread(target=receiving_email_client.start_client, args=(user,))
+        t = threading.Thread(target=receiving_email_client.start_client, args=(user, num_servers, process_id))
         thread_list.append(t)
 
     for thread in thread_list:
