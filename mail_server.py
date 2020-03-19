@@ -16,7 +16,7 @@ import shutil
 
 ROOT_MAIL_DIRECTORY = "/var/mail"
 #ROOT_MAIL_DIRECTORY = "/Users/tanvigupta/mail"
-SEPARATOR = "--------------------"
+SEPARATOR = "----------------------------------------------"
 
 
 def execute_shell_command(command):
@@ -54,18 +54,15 @@ class EmailServer:
     def start(self):
         connection = pika.BlockingConnection(pika.ConnectionParameters('10.168.0.2', 5672, "/", pika.PlainCredentials('rabbit', '1')))
         self.channel = connection.channel()
-        self.channel.queue_declare(queue='MailQ', durable=True)
-        # A queue to receive mailbox access request
-        self.channel.queue_declare(queue='RequestQ', durable=True)
-        # A queue to send the mail query response
-        self.channel.queue_declare(queue='ResponseQ', durable=True)
-        # A queue to receive registration requests
-        self.channel.queue_declare(queue='RegisterQ', durable=True)
+        self.channel.queue_declare(queue=MAIL_QUEUE, durable=True)
+        self.channel.queue_declare(queue=REQUEST_QUEUE, durable=True)
+        self.channel.queue_declare(queue=RESPONSE_QUEUE, durable=True)
+        self.channel.queue_declare(queue=REGISTER_QUEUE, durable=True)
 
     def run(self):
-        self.channel.basic_consume(queue='RegisterQ', auto_ack=True, on_message_callback=self.register_callback)
-        self.channel.basic_consume(queue='RequestQ', auto_ack=True, on_message_callback=self.request_callback)
-        self.channel.basic_consume(queue='MailQ', auto_ack=True, on_message_callback=self.send_callback)
+        self.channel.basic_consume(queue=REGISTER_QUEUE, auto_ack=True, on_message_callback=self.register_callback)
+        self.channel.basic_consume(queue=REQUEST_QUEUE, auto_ack=True, on_message_callback=self.request_callback)
+        self.channel.basic_consume(queue=MAIL_QUEUE, auto_ack=True, on_message_callback=self.send_callback)
         self.channel.start_consuming()
 
     def create_sender_directory_for_receiver_if_not_exists(self, sender, receiver):
@@ -201,6 +198,16 @@ class EmailServer:
 
 if __name__ == "__main__":
     # TODO: create a persistent data for the mapping of sender and receiver to the file name
+
+    if (len(sys.argv) <= 1):
+        print("Please provide the server id as argument")
+
+    SERVER_ID = str(sys.argv[1])
+    MAIL_QUEUE = "MailQ" + SERVER_ID
+    REGISTER_QUEUE = "RegisterQ" + SERVER_ID
+    REQUEST_QUEUE = "RequestQ" + SERVER_ID
+    RESPONSE_QUEUE = "ResponseQ"
+
     EMAIL_SERVER = EmailServer()
     EMAIL_SERVER.start()
     EMAIL_SERVER.run()
