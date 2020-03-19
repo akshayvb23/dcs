@@ -30,20 +30,20 @@ def execute_shell_command(command):
 
 class HDFS:
     def check_if_directory_exists(self, directory):
-        command = ['bin/hdfs', 'dfs', '-test', '-d', directory]
+        command = ['../bin/hdfs', 'dfs', '-test', '-d', directory]
         return execute_shell_command(command)
 
     def create_directory(self, directory):
-        command = ['bin/hdfs', 'dfs', '-mkdir', '-p', directory]
+        command = ['../bin/hdfs', 'dfs', '-mkdir', '-p', directory]
         return execute_shell_command(command)
         #os.makedirs(directory)
 
     def store_file(self, filename, destination_directory):
-        command = ['bin/hdfs', 'dfs', '-put', filename, destination_directory]
+        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory]
         return execute_shell_command(command)
 
     def copy_mail_directory_to_local_storage(self, source_directory, destination_directory):
-        command = ['bin/hdfs', 'dfs', '-copyToLocal', source_directory, destination_directory]
+        command = ['../bin/hdfs', 'dfs', '-copyToLocal', source_directory, destination_directory]
         return execute_shell_command(command)
 
 
@@ -53,7 +53,7 @@ class EmailServer:
         self.hdfs = HDFS()
 
     def start(self):
-        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        connection = pika.BlockingConnection(pika.ConnectionParameters('10.168.0.2', 5672, "/", pika.PlainCredentials('rabbit', '1')))
         self.channel = connection.channel()
         self.channel.queue_declare(queue='MailQ', durable=True)
         # A queue to receive mailbox access request
@@ -157,9 +157,9 @@ class EmailServer:
         # shutil.copy(filename, ROOT_MAIL_DIRECTORY + '/' + sender + '/sent/')
         # shutil.copy(filename, ROOT_MAIL_DIRECTORY + '/' + receivers + '/received/')
         # In the case that an email is sent out to multiple receivers
-        for receiver in receivers:
+        #for receiver in receivers:
             # self.create_sender_directory_for_receiver_if_not_exists(sender, receiver)
-            self.store_mail_in_receiver_box_in_hdfs(sender, receiver, filename)
+        self.store_mail_in_receiver_box_in_hdfs(sender, receivers, filename)
         self.store_mail_in_sender_box_in_hdfs(sender, filename)
         os.remove(filename)
 
@@ -181,6 +181,7 @@ class EmailServer:
             retrieved_directory = self.retrieve_received_mails_from_hdfs(user)
             mailbox = self.construct_mailbox(retrieved_directory)
 
+        print("Sending mailbox back to client")
         self.channel.basic_publish(exchange='', routing_key='ResponseQ', body=mailbox)
 
 
