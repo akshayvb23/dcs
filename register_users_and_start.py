@@ -1,19 +1,18 @@
 import os
+import sys
 import threading
 
 import pika
 import json
 import email_address_generator
 import mail_sending_client
+import client_constants
 
-
-def register_user(username, password, ch):
+def register_user(username, password, ch, queue):
     login = {'username': str(username), 'password': password}
     login_info = json.dumps(login)
     print("sending request for " + email_id)
-    ch.basic_publish(exchange='',
-                     routing_key='RegisterQ',
-                     body=login_info)
+    ch.basic_publish(exchange='', routing_key=queue, body=login_info)
 
 
 def register_callback(self, ch, method, properties, body):
@@ -23,6 +22,10 @@ def register_callback(self, ch, method, properties, body):
 if __name__ == "__main__":
     if os.path.isfile('email_list'):
         os.remove('email_list')
+
+    num_servers = int(sys.argv[1])
+    register_count = 0
+
     #connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     connection = pika.BlockingConnection(pika.ConnectionParameters('10.168.0.2', 5672, "/", pika.PlainCredentials('rabbit','1')))
     channel = connection.channel()
@@ -34,12 +37,16 @@ if __name__ == "__main__":
     for email_id in email_list:
         # Don't really need to write to the file but doing so for future use
         file_handle.write(email_id + '\n')
-        register_user(email_id, default_password, channel)
+        queue = client_constants.REGISTER_QUEUE + str((register_count % num_servers) + 1)
+        print("Reg queue for user " + email_id + " is " + queue)
+        register_user(email_id, default_password, channel, queue)
+        register_count += 1
+
     file_handle.close()
     thread_list = []
     for sender in email_list:
         print(sender)
-        t = threading.Thread(target=mail_sending_client.start_sender, args=(email_list[0], email_list, channel))
+        t = threading.Thread(target=mail_sending_client.start_sender, args=(email_list[0], email_list, channel, num_servers))
         thread_list.append(t)
 
     print(len(thread_list))

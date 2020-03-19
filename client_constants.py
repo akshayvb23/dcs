@@ -1,0 +1,4 @@
+MAIL_QUEUE = "MailQ" 
+REGISTER_QUEUE = "RegisterQ"
+REQUEST_QUEUE = "RequestQ" 
+RESPONSE_QUEUE = "ResponseQ"
