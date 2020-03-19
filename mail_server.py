@@ -39,11 +39,11 @@ class HDFS:
         #os.makedirs(directory)
 
     def store_file(self, filename, destination_directory):
-        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory]
+        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory ] #+ "/" + filename.split("/")[-1]]
         return execute_shell_command(command)
 
     def copy_mail_directory_to_local_storage(self, source_directory, destination_directory):
-        command = ['../bin/hdfs', 'dfs', '-copyToLocal', source_directory, destination_directory]
+        command = ['../bin/hdfs', 'dfs', '-get', source_directory, destination_directory]
         return execute_shell_command(command)
 
 
@@ -84,27 +84,35 @@ class EmailServer:
         self.hdfs.store_file(filename, sent_mail_directory)
 
     def retrieve_received_mails_from_hdfs(self, receiver, sender=""):
-        mail_directory = ROOT_MAIL_DIRECTORY + "/" + receiver + "/received/" + sender
-        destination = "/var/tmp/" + receiver + "/received/" + sender
+        if sender != "":
+            mail_directory = ROOT_MAIL_DIRECTORY + "/" + receiver + "/received/" + sender
+            destination = "/var/tmp/" + receiver + "/received/" + sender
+        else:
+            mail_directory =  ROOT_MAIL_DIRECTORY + "/" + receiver + "/received"
+            destination = "/var/tmp/" + receiver
+
+        print(destination)
         if not os.path.isdir(destination):
-            os.path.mkdir(destination)
-        self.copy_mail_directory_to_local_storage(mail_directory, destination)
-        return destination
+            os.makedirs(destination, exist_ok=True)
+        self.hdfs.copy_mail_directory_to_local_storage(mail_directory, destination)
+        return destination + "/received"
 
     def retrieve_sent_mails_from_hdfs(self, sender):
         mail_directory = ROOT_MAIL_DIRECTORY + "/" + sender + "/sent/"
         destination = "/var/tmp/" + sender + "/sent/"
         if not os.path.isdir(destination):
             os.path.mkdir(destination)
-        self.copy_mail_directory_to_local_storage(mail_directory, destination)
+        self.hdfs.copy_mail_directory_to_local_storage(mail_directory, destination)
         return destination
 
     def construct_mailbox(self, mail_directory):
+        print("Constructing mailbox from the mails in the directory:" + mail_directory)
         mailbox = ""
-        file_list = glob.glob("*")
-        for file in file_list:
-            with open(file, "rb") as file_handle:
-                mailbox += file_handle.read() + "\n" + SEPARATOR
+        file_list = glob.glob(mail_directory + "/*/*")
+        print(str(file_list))
+        for file_entry in file_list:
+            with open(file_entry, "rb") as file_handle:
+                mailbox += str(file_handle.read()) + "\n" + SEPARATOR
         return mailbox
 
     def register_callback(self, ch, method, properties, body):
@@ -158,7 +166,7 @@ class EmailServer:
         # shutil.copy(filename, ROOT_MAIL_DIRECTORY + '/' + receivers + '/received/')
         # In the case that an email is sent out to multiple receivers
         #for receiver in receivers:
-            # self.create_sender_directory_for_receiver_if_not_exists(sender, receiver)
+        self.create_sender_directory_for_receiver_if_not_exists(sender, receivers)
         self.store_mail_in_receiver_box_in_hdfs(sender, receivers, filename)
         self.store_mail_in_sender_box_in_hdfs(sender, filename)
         os.remove(filename)
@@ -172,14 +180,20 @@ class EmailServer:
         request = json.loads(body)
         user = request.get('user_email')
         query_type = request.get('query_type')
-
+        
+        print("receiving request for mailbox from :" + user)
+            
         mailbox = ""
+        print(query_type)
         if query_type == "SENT":
+            print("Hello")
             retrieved_directory = self.retrieve_sent_mails_from_hdfs(user)
             mailbox = self.construct_mailbox(retrieved_directory)
         elif query_type == 'RECEIVED':
+            print("Retrieving received mails for user " + str(user))
             retrieved_directory = self.retrieve_received_mails_from_hdfs(user)
             mailbox = self.construct_mailbox(retrieved_directory)
+            print(retrieved_directory)
 
         print("Sending mailbox back to client")
         self.channel.basic_publish(exchange='', routing_key='ResponseQ', body=mailbox)
