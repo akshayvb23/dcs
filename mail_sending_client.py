@@ -7,7 +7,7 @@ import generate_random_string
 import email_address_generator
 from email.message import EmailMessage
 
-send_sizes = [10, 20]
+send_sizes = [10]
 
 
 # send_sizes = [10, 20, 30, 40, 50, 100, 200, 500, 1000, 100000, 1000000]
@@ -33,7 +33,10 @@ def start_sender(sender_email_id, send_list, channel):
     sender = sender_email_id
     for receiver in send_list:
         for size in send_sizes:
-            subject = generate_random_string.randomString()
-            message_body = generate_random_string.randomString(size)
-            # TODO: select a channel list in a round-robin manner
-            send_email(sender, receiver, subject, message_body, channel)
+            if receiver is sender_email_id:
+                continue
+            else : 
+                subject = generate_random_string.randomString()
+                message_body = generate_random_string.randomString(size)
+                # TODO: select a channel list in a round-robin manner
+                send_email(sender, receiver, subject, message_body, channel)
