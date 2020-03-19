@@ -11,7 +11,7 @@ import client_constants
 def register_user(username, password, ch, queue):
     login = {'username': str(username), 'password': password}
     login_info = json.dumps(login)
-    print("sending request for " + email_id)
+    print("\nSending a registration request for the user " + email_id)
     ch.basic_publish(exchange='', routing_key=queue, body=login_info)
 
 
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     channel = connection.channel()
     """ generate_random_emails(number_of_emails, length_of_username 
     and save to email_list file """
-    email_list = email_address_generator.generate_random_emails(2, 7)
+    email_list = email_address_generator.generate_random_emails(3, 7)
     file_handle = open("email_list", 'w')
     default_password = "password"
     for email_id in email_list:

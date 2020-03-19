@@ -8,7 +8,7 @@ import email_address_generator
 from email.message import EmailMessage
 import client_constants
 
-send_sizes = [10]
+send_sizes = [10, 20]
 # send_sizes = [10, 20, 30, 40, 50, 100, 200, 500, 1000, 100000, 1000000]
 SEND_COUNT = 0
 
@@ -38,6 +38,6 @@ def start_sender(sender_email_id, send_list, channel, num_servers):
                 message_body = generate_random_string.randomString(size)
                 # TODO: select a channel list in a round-robin manner
                 queue = client_constants.MAIL_QUEUE + str((SEND_COUNT % num_servers) + 1)
-                print("Sending mail through queue " + queue)
+                print("\nSending mail (sender: " + sender + " and receiver: " + receiver + ") through queue " + queue)
                 send_email(sender, receiver, subject, message_body, channel, queue)
                 SEND_COUNT += 1

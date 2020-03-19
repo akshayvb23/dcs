@@ -5,13 +5,13 @@ import client_constants
 REQUEST_COUNTER = 0
 
 def response_callback(ch, method, properties, body):
-    print("getting the most recent mailbox:")
+    print("\nThe fetched mailbox is as follows: ")
     print(str(body.decode("utf-8")))
 
 
 def start_client(user, num_servers, process_id):
     global REQUEST_COUNTER
-    print("sending a request for user "+ user)
+    print("\nSending a request to the mail server to fetch the mailbox for user " + user)
     connection = pika.BlockingConnection(
     pika.ConnectionParameters('10.168.0.2', 5672, "/", pika.PlainCredentials('rabbit', '1')))
     channel = connection.channel()
