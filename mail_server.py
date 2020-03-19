@@ -36,10 +36,9 @@ class HDFS:
     def create_directory(self, directory):
         command = ['../bin/hdfs', 'dfs', '-mkdir', '-p', directory]
         return execute_shell_command(command)
-        #os.makedirs(directory)
 
     def store_file(self, filename, destination_directory):
-        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory] #+ "/" + filename.split("/")[-1]]
+        command = ['../bin/hdfs', 'dfs', '-put', filename, destination_directory]
         return execute_shell_command(command)
 
     def copy_mail_directory_to_local_storage(self, source_directory, destination_directory):
@@ -73,7 +72,6 @@ class EmailServer:
         sender_directory = ROOT_MAIL_DIRECTORY + "/" + receiver + "/received/" + sender + "/"
         if self.hdfs.check_if_directory_exists(sender_directory):
             return
-        print("Creating directory " + sender_directory)
         self.hdfs.create_directory(sender_directory)
 
     def store_mail_in_receiver_box_in_hdfs(self, sender, receiver, filename):
@@ -92,7 +90,6 @@ class EmailServer:
             mail_directory =  ROOT_MAIL_DIRECTORY + "/" + receiver + "/received"
             destination = "/var/tmp/" + receiver
 
-        print(destination)
         if not os.path.isdir(destination):
             os.makedirs(destination, exist_ok=True)
         self.hdfs.copy_mail_directory_to_local_storage(mail_directory, destination)
@@ -107,13 +104,12 @@ class EmailServer:
         return destination
 
     def construct_mailbox(self, mail_directory):
-        print("Constructing mailbox from the mails in the directory:" + mail_directory)
         mailbox = ""
         file_list = glob.glob(mail_directory + "/*/*")
-        print(str(file_list))
         for file_entry in file_list:
             with open(file_entry, "rb") as file_handle:
-                mailbox += str(file_handle.read()) + "\n" + SEPARATOR
+                mailbox += str(file_handle.read()) + "\n" + SEPARATOR + "\n"
+            os.remove(file_entry)
         return mailbox
 
     def register_callback(self, ch, method, properties, body):
@@ -123,12 +119,15 @@ class EmailServer:
             username = register.get('username')
             # computing hash of the password
             password = hashlib.md5(register.get('password').encode('utf-8')).hexdigest()
-            print("Received registration request from user " + username)
+            print("\nReceived registration request from user " + username)
 
             # inbox directory
             self.hdfs.create_directory(ROOT_MAIL_DIRECTORY + '/' + username + '/sent/')
             # outbox directory
             self.hdfs.create_directory(ROOT_MAIL_DIRECTORY + '/' + username + '/received/')
+
+            print("\nSuccessfully registered the user " + username)
+
         except:
             print("Received invalid json file")
             print(sys.exec_info())
@@ -144,32 +143,35 @@ class EmailServer:
         sender = receivedEmail.get('sender')
         receivers = receivedEmail.get('receipt')
         email_subject = receivedEmail.get('subject')
+        email_message = str(receivedEmail.get('message').encode("utf-8"))
 
-        print("[From]:" + sender)
-        print("[Subject]" + email_subject)
-        print("[Recipients]:" + receivers)
-        print(receivedEmail.get('message'))
+        print("\nEmail arrived at the server. Here is the summary of the mail:")
+        print("\n[From]: " + sender)
+        print("[Subject]: " + email_subject)
+        print("[Recipients]: " + receivers)
+        print("[Message]: " + email_message)
+        print("\n")
 
         ''' Create a new file '''
         filename = "/var/tmp/" + str(time.time()) + ".eml"
-        #filename = str(time.time()) + ".eml"
         file_handle = open(filename, 'w')
-        file_handle.write("[From]: " + sender)
-        file_handle.write("[Recipients]: " + str(receivers))
-        file_handle.write("[Email Subject]: " + email_subject)
-        file_handle.write("[Time]: " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
-        file_handle.write(receivedEmail.get('message'))
+        file_handle.write("[From]: " + sender + "\n")
+        file_handle.write("[Recipients]: " + str(receivers) + "\n")
+        file_handle.write("[Email Subject]: " + email_subject + "\n")
+        file_handle.write("[Time]: " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
+        file_handle.write("[Message]: " + email_message  + "\n")
         file_handle.close()
-
 
         # Tanvi testing
         # shutil.copy(filename, ROOT_MAIL_DIRECTORY + '/' + sender + '/sent/')
         # shutil.copy(filename, ROOT_MAIL_DIRECTORY + '/' + receivers + '/received/')
         # In the case that an email is sent out to multiple receivers
         #for receiver in receivers:
+
         self.create_sender_directory_for_receiver_if_not_exists(sender, receivers)
         self.store_mail_in_receiver_box_in_hdfs(sender, receivers, filename)
         self.store_mail_in_sender_box_in_hdfs(sender, filename)
+        print("\nSuccessfully stored the email in the HDFS")
         os.remove(filename)
 
     def request_callback(self, ch, method, properties, body):
@@ -182,21 +184,18 @@ class EmailServer:
         user = request.get('user_email')
         query_type = request.get('query_type')
         
-        print("receiving request for mailbox from :" + user)
-            
         mailbox = ""
-        print(query_type)
         if query_type == "SENT":
-            print("Hello")
+            print("\nReceived a request to fetch the outbox for the user: " + user)
             retrieved_directory = self.retrieve_sent_mails_from_hdfs(user)
             mailbox = self.construct_mailbox(retrieved_directory)
         elif query_type == 'RECEIVED':
-            print("Retrieving received mails for user " + str(user))
+            print("\nReceived a request to fetch the inbox for the user: " + user)
             retrieved_directory = self.retrieve_received_mails_from_hdfs(user)
             mailbox = self.construct_mailbox(retrieved_directory)
-            print(retrieved_directory)
 
-        print("Sending mailbox back to client")
+        print("\nSending the requested mailbox back to client. Mailbox is as follows:\n")
+        print(mailbox)
         self.channel.basic_publish(exchange='', routing_key='ResponseQ', body=mailbox)
 
 
