@@ -38,6 +38,7 @@ if __name__ == "__main__":
     file_handle.close()
     thread_list = []
     for sender in email_list:
+        print(sender)
         t = threading.Thread(target=mail_sending_client.start_sender, args=(email_list[0], email_list, channel))
         thread_list.append(t)
 

@@ -27,16 +27,17 @@ channel.start_consuming()'''
 
 
 def update_email_send_list():
-    file_handle = open("email_list", 'w')
+    file_handle = open("email_list", 'r')
     email_list = []
     for line in file_handle.readlines():
-        email_list.append(line)
+        email_list.append(line.strip())
     return email_list
 
 
-def main():
+if __name__== '__main__':
     # TODO: get a host list from the config file
     email_list = update_email_send_list()
+    print(email_list)
     # get the sender email from the command line argument
     thread_list = []
     for user in email_list:

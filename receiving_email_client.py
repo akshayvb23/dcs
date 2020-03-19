@@ -3,14 +3,15 @@ import json
 
 def response_callback(ch, method, properties, body):
     print("getting the most recent mailbox:")
-    print(body)
+    print(str(body.decode("utf-8")))
 
 
 def start_client(user):
+    print("sending a request for user "+ user)
     connection = pika.BlockingConnection(
-    pika.ConnectionParameters('34.94.60.242', 5672, "/", pika.PlainCredentials('rabbit', '1')))
+    pika.ConnectionParameters('10.168.0.2', 5672, "/", pika.PlainCredentials('rabbit', '1')))
     channel = connection.channel()
-    request = {"user_email": user, "query type": "RECEIVED"}
+    request = {"user_email": user, "query_type": "RECEIVED"}
     channel.basic_publish(exchange='',
                           routing_key='RequestQ',
                           body=json.dumps(request))
